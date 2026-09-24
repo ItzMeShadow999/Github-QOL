@@ -1,4 +1,28 @@
-# GitHub UserScripts
+<div align="center">
+
+<img src="https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg" alt="Github-QOL icon" width="240" height="240">
+
+<h1 align="center">GitHub UserScripts</h1>
+
+<p align="center">
+  <a href="https://github.com/ItzMeShadow999/Github-QOL/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ItzMeShadow999/Github-QOL?style=for-the-badge&labelColor=0d1117&color=1f6feb" alt="license"></a>
+  <a href="https://github.com/ItzMeShadow999/Github-QOL"><img src="https://img.shields.io/badge/repo%20size-105kb-1f6feb?style=for-the-badge&labelColor=0d1117" alt="repo size"></a>
+</p>
+
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/scriptvault/jlhdbkeijcbgnonpfkfkkkhfmbeejkgh?hl=en"><img src="https://img.shields.io/badge/scriptvault-supported-2ea043?style=for-the-badge&labelColor=0d1117&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACoAAAAwCAYAAABnjuimAAACd0lEQVR4nNWZO2sUURSAvxl1MT6ikCAI2ggWioFYqX/AR5VGEIT8DrGwEQQRxM5WwUIEOxFEEUQNhiSFRQwBsVBRkaB5GDUPdj+LWUkWs9m7m1nvzgcXloHd8+3MuTNzzklUcuQgcBUoAReAidx+Wc1jbVYvqtOuMKteUbfkESMPyQH1hVp2bUbUc9U/899Ft6r96iu1UkdwNRV1TD2mdrUSM7G5HO0BBoHzwBGgq8lMWwAmgXvALeBr6BcT9QCwCUiAtPq5VJXoBnqBQ8AJ4HgLcvVYBEaBIbJNNwXMAb+AJaAMWF3lRJ0GducUvF3Mp7ENQimKqClZDnQ8RTmjxRItwqUvTI6aApXYFiEURbRSFFFTsmdqp1Mpimg5BZZjWwRQLNHF2BYBLKfA79gWASynZG/Unc5CCvyIbRHAQgrMxLYIYC4FPsa2COBdCryNbRHAeAqMx7YIYCRRS2Q1dXdsmzrMAb0pWbH/JLLMegxRvY8C3KVzX/cewkpxNwbMxnOpi8BzWBH9ADyNplOfZ8AboKabtxd4DeyJovQv34E+4DPU1vVfgBt0RlUqcJuqZHaktmG6TX0Q0JhtN4/VHTZo5O4CHpH1QmMwDpwGPq0+WK/jXAKGgaPt96phAuhnjaqjXu9pCTgF3OH/3F8rwH3gJPVKIxs3+i9ZO5bJm1n1mg3GPCGiidqnvm+D5IzZpCRp5NHMCGW7elmdz0Hwp9lZ3Bkav5UZ0351VF1qQXBZnVAPNxu31YFYl3rW5nJ3Wh00uzJNx2xVdPUD4ro6tY7gN/Wm2rORWBsV/bt61OE1JCfVfXnEyEsUs517Rn1ZlR4wYDeHrj8jIv1bEQVObwAAAABJRU5ErkJggg==&logoColor=white" alt="scriptvault"></a>
+  <img src="https://img.shields.io/badge/tampermonkey-supported-00485B?style=for-the-badge&labelColor=0d1117&logo=tampermonkey&logoColor=white" alt="tampermonkey supported">
+  <img src="https://img.shields.io/badge/violentmonkey-supported-2e7d32?style=for-the-badge&labelColor=0d1117&logo=data:image/png;base64,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&logoColor=white" alt="violentmonkey supported">
+  <img src="https://img.shields.io/badge/javascript-userscripts-F7DF1E?style=for-the-badge&logo=javascript&logoColor=F7DF1E&labelColor=0d1117&color=0d1117" alt="javascript userscripts">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/github.com-0d1117?style=flat-square&logo=github&logoColor=white" alt="github.com">
+  <img src="https://img.shields.io/badge/gist.github.com-0d1117?style=flat-square&logo=github&logoColor=white" alt="gist.github.com">
+<img src="https://img.shields.io/badge/Made%20by-ItzMeShadow999-darkred?style=flat-square&labelColor=333333" alt="made by itzmeshadow999">
+</p>
+
+</div>
 
 A collection of userscripts that add keyboard shortcuts, copy buttons, notification badges, and a much nicer Gist Discover experience to **github.com** and **gist.github.com**.
 
@@ -48,6 +72,7 @@ The combined script guards each module by hostname and path, so repo logic never
 1. Install a userscript manager for your browser:
    - [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Edge, Firefox, Safari, Opera)
    - [Violentmonkey](https://violentmonkey.github.io/) (Chrome, Edge, Firefox)
+   - [ScriptVault](https://chromewebstore.google.com/detail/scriptvault/jlhdbkeijcbgnonpfkfkkkhfmbeejkgh?hl=en) (Chrome, Edge, Firefox, Firefox for Android, Brave, Vivaldi, Opera, Arc, Safari, Orion) ![Recommended](https://img.shields.io/badge/Recommended-%E2%9C%94-brightgreen)
 2. Open the script you want in this repository and click **Raw**. Your userscript manager will offer to install it.
 3. Confirm the install, then reload GitHub.
 
