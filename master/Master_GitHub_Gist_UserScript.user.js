@@ -10,7 +10,7 @@
 // @updateURL    https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_GitHub_Gist_UserScript.user.js
 // @match        https://github.com/*
 // @match        https://gist.github.com/*
-// @icon         https://i.pinimg.com/736x/64/88/0b/64880b9b0fe5b53bbe3f7280d262b33f.jpg
+// @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @grant        GM_setClipboard
 // @run-at       document-end
 // ==/UserScript==

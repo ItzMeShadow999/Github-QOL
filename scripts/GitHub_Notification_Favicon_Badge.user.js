@@ -9,6 +9,7 @@
 // @downloadURL  https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Notification_Favicon_Badge.user.js
 // @updateURL    https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Notification_Favicon_Badge.user.js
 // @match        https://github.com/*
+// @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==

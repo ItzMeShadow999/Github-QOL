@@ -9,7 +9,7 @@
 // @downloadURL  https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/Gist_Discover_Doomscroll.user.js
 // @updateURL    https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/Gist_Discover_Doomscroll.user.js
 // @match        https://gist.github.com/discover*
-// @icon         https://github.githubassets.com/favicons/favicon.svg
+// @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==

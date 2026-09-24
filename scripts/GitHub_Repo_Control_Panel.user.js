@@ -9,7 +9,7 @@
 // @downloadURL  https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Repo_Control_Panel.user.js
 // @updateURL    https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Repo_Control_Panel.user.js
 // @match        https://github.com/*
-// @icon         https://i.pinimg.com/736x/64/88/0b/64880b9b0fe5b53bbe3f7280d262b33f.jpg
+// @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @grant        GM_setClipboard
 // @run-at       document-end
 // ==/UserScript==
