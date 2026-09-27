@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         GitHub Repo Wiper
 // @namespace    https://github.com/ItzMeShadow999
-// @version      1.0
+// @version      1.1
 // @description  Adds a "Wipe Repo" button that deletes all files in the current repo (repo itself is kept)
 // @match        https://github.com/*/*
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
 // @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/ItzMeShadow999/Github-QOL/main/scripts/GitHub_Repo_Wiper.user.js
+// @downloadURL  https://raw.githubusercontent.com/ItzMeShadow999/Github-QOL/main/scripts/GitHub_Repo_Wiper.user.js
 // ==/UserScript==
 
 (function () {
@@ -21,7 +23,7 @@
     const token = prompt(
       'Enter a GitHub Personal Access Token with "repo" (classic) or ' +
       '"Contents: write" (fine-grained) scope.\n' +
-      'Stored locally in Tampermonkey storage, only ever sent to api.github.com.'
+      'Stored locally via GM_setValue, only ever sent to api.github.com.'
     );
     if (token) GM_setValue('gh_wipe_token', token.trim());
   }
@@ -40,7 +42,7 @@
 
   async function ghFetch(url, options = {}) {
     const token = getToken();
-    if (!token) throw new Error('No token set. Use the Tampermonkey menu → "Set GitHub Token" first.');
+    if (!token) throw new Error('No token set. Open your userscript manager\'s popup, find "GitHub Repo Wiper", and run "Set GitHub Token" first.');
     const res = await fetch(url, {
       ...options,
       headers: {
@@ -68,7 +70,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: 'Wipe repo files (GitHub Repo Wiper userscript)',
+        message: 'Wiped repo via GitHub Repo Wiper UserScript.\n\nhttps://github.com/ItzMeShadow999/Github-QOL/blob/main/scripts/GitHub_Repo_Wiper.user.js',
         tree: EMPTY_TREE_SHA,
         parents: [latestCommitSha],
       }),
