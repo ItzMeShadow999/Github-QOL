@@ -24,9 +24,9 @@
 
 </div>
 
-A collection of userscripts that add keyboard shortcuts, copy buttons, notification badges, and a much nicer Gist Discover experience to **github.com** and **gist.github.com**.
+A collection of userscripts that add keyboard shortcuts, copy buttons, notification badges, a much nicer Gist Discover experience, and repo management tools to **github.com** and **gist.github.com**.
 
-Every feature exists as a standalone script, and everything is also bundled into three "master" scripts so you can install one file and be done.
+Every feature exists as a standalone script, and most are also bundled into three "master" scripts so you can install one file and be done.
 
 ## Table of Contents
 
@@ -49,10 +49,13 @@ Every feature exists as a standalone script, and everything is also bundled into
 | **GitHub Repo Control Panel** | `github.com` | Alt+E / Alt+R / Alt+C shortcuts for repo file pages, plus a small legend panel |
 | **GitHub Notification Favicon Badge** | `github.com` | Puts a red dot on the tab title and favicon when you have unread notifications |
 | **GitHub PR Auto-Expand Diffs** | Pull request pages | Automatically clicks "Load diff" and "Load more files" so big PRs render fully |
+| **GitHub Repo Wiper** | Repo pages | Adds a "Wipe Repo" button that deletes every file in a repo's default branch while keeping the repo itself *(standalone only for now see note below)* |
 | **GitHub Gist Control Panel** | `gist.github.com` | Same shortcuts for gists, plus one-click copy buttons on code blocks |
 | **Gist Discover: Actual Pagination** | `gist.github.com/discover` | Prev / Next / jump-to-page controls at the top and bottom of the page |
 | **Gist Discover Doomscroll** | `gist.github.com/discover` | Infinite scroll that keeps loading new pages of gists as you go |
 | **Gist Discover Spam Filter** | `gist.github.com/discover` | Hides obvious spam and junk gists, with a toggle to reveal them |
+
+> **GitHub Repo Wiper isn't in any master script yet.** It's brand new and standalone-only right now it'll be folded into the GitHub and combined master scripts soon.
 
 ## Which One Should I Install?
 
@@ -60,12 +63,12 @@ Pick **one** of these routes. Do not mix a master script with the standalone scr
 
 | Option | Contains | Sites |
 | --- | --- | --- |
-| **The Master GitHub/Gist UserScript** (recommended) | All 7 scripts | `github.com` and `gist.github.com` |
+| **The Master GitHub/Gist UserScript** (recommended) | All 6 bundled scripts | `github.com` and `gist.github.com` |
 | **Master GitHub UserScript** | Repo Control Panel, Notification Favicon Badge, PR Auto-Expand Diffs | `github.com` only |
 | **Master Gist UserScript** | Gist Control Panel, Pagination, Doomscroll, Spam Filter | `gist.github.com` only |
-| **Standalone scripts** | Whichever ones you choose | See table above |
+| **Standalone scripts** | Whichever ones you choose, including GitHub Repo Wiper | See table above |
 
-The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`.
+The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`. GitHub Repo Wiper must be installed on its own until it's added to the master scripts.
 
 ## Installation
 
@@ -81,8 +84,9 @@ Direct install links:
 - [The Master GitHub/Gist UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_GitHub_Gist_UserScript.user.js)
 - [Master GitHub UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_GitHub_UserScript.user.js)
 - [Master Gist UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_Gist_UserScript.user.js)
+- [GitHub Repo Wiper](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Repo_Wiper.user.js) *(standalone only, not yet in a master script)*
 
-The two scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time.
+The two scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time. GitHub Repo Wiper uses `GM_setValue`/`GM_getValue` to store your GitHub token locally and `GM_registerMenuCommand` to add a "Set GitHub Token" entry to its menu.
 
 ## Features in Detail
 
@@ -108,6 +112,14 @@ If the browser blocks the canvas (a cross-origin favicon without CORS headers, f
 ### PR Auto-Expand Diffs
 
 On pull request pages, finds every button, link, or summary whose text is "Load diff" or "Load more files..." and clicks it for you. It runs once immediately, again after 0.8 seconds and 2 seconds, and keeps watching for new buttons as diffs load. Matching is done on visible text rather than class names, since GitHub changes class names far more often than button copy.
+
+### GitHub Repo Wiper
+
+Adds a red **"Wipe Repo"** button on any repo page. Clicking it prompts you to type the repo name to confirm, then uses GitHub's Git Data API to point the default branch at an empty tree every file is removed in a single commit, but the repo, its settings, stars, issues, and prior history are untouched. The commit is always titled `Wiped repo via GitHub Repo Wiper UserScript.`, with a link back to the script in the commit description.
+
+Before first use, set a GitHub Personal Access Token (`repo` scope, or `Contents: write` for a fine-grained token) via the script's **Set GitHub Token** menu command in your userscript manager's popup.
+
+*Not yet bundled into any master script coming soon.*
 
 ### Gist Control Panel
 
@@ -151,7 +163,7 @@ Scans every gist card on Discover against a set of patterns and hides the ones t
 | **Alt+R** | Open the current file (`/blob/`) as raw (`/raw/`) | Open the gist's raw view |
 | **Alt+C** | Copy `owner/repo` | Copy the gist ID |
 
-Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing.
+Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing. GitHub Repo Wiper has no keyboard shortcut it's button-only, on purpose.
 
 ## Spam Filter Rules
 
@@ -182,12 +194,17 @@ There is no settings UI. Each script keeps its tunables in constants near the to
 
 Add, remove, or edit entries in the `RULES` array. Each entry is `{ label, re }`.
 
+**GitHub Repo Wiper**
+
+Your token is stored under the `gh_wipe_token` key via `GM_setValue`. Re-run the **Set GitHub Token** menu command at any time to replace it.
+
 ## Known Quirks
 
 - **Do not double up.** Install a master script or the matching standalone scripts, not both.
 - **The spam filter is heuristic.** It will occasionally catch a legitimate gist (a gist that lists Ethereum addresses, for example). Use the **Show** button in the pill to review what was hidden.
 - **Pagination bar and Doomscroll together.** Both can run at once, but the bar's page label reflects the page you originally loaded, not how far Doomscroll has scrolled. The **Prev**, **Next**, and jump controls reload the page.
 - **Alt+C on github.com** copies the first two path segments of any page, so outside a repository it will copy whatever those segments happen to be.
+- **GitHub Repo Wiper is destructive.** It force-pushes an empty tree to the default branch in one commit. Files stay recoverable from git history unless you separately rewrite or delete that history, and the operation will fail on branches with required-review protection until protection is relaxed.
 - **GitHub changes its markup.** Selectors like `.gist-snippet` and `.AppHeader-button--hasIndicator` may need updating if GitHub redesigns those pages.
 
 ## Repository Layout
@@ -203,6 +220,7 @@ Add, remove, or edit entries in the `RULES` array. Each entry is `{ label, re }`
     ├── GitHub_Repo_Control_Panel.user.js
     ├── GitHub_Notification_Favicon_Badge.user.js
     ├── GitHub_PR_Auto-Expand_Diffs.user.js
+    ├── GitHub_Repo_Wiper.user.js
     ├── GitHub_Gist_Control_Panel.user.js
     ├── Gist_Discover___Actual_Pagination.user.js
     ├── Gist_Discover_Doomscroll.user.js
