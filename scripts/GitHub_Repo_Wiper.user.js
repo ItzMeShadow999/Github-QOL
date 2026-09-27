@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub Repo Wiper
 // @namespace    https://github.com/ItzMeShadow999
-// @version      1.1
+// @version      1.3
 // @description  Adds a "Wipe Repo" button that deletes all files in the current repo (repo itself is kept)
 // @match        https://github.com/*/*
 // @grant        GM_setValue
@@ -92,12 +92,35 @@
 
     const btn = document.createElement('button');
     btn.id = 'gh-wipe-repo-btn';
+    btn.type = 'button';
     btn.textContent = 'Wipe Repo';
+    btn.addEventListener('click', () => handleWipeClick(info));
+
+    const newActions = document.querySelector('ul[data-testid="repo-header-actions"]');
+    const oldActions = document.querySelector('.pagehead-actions.flex-shrink-0.d-none.d-md-inline');
+    const actions = newActions || oldActions;
+
+    if (actions) {
+      const li = document.createElement('li');
+      if (newActions) {
+        btn.style.cssText =
+          'background-color:var(--button-danger-bgColor-rest,#da3633);' +
+          'color:var(--button-danger-fgColor-rest,#fff);' +
+          'border:1px solid var(--button-danger-borderColor-rest,rgba(255,255,255,.1));' +
+          'border-radius:6px;height:28px;padding:0 12px;font-size:12px;font-weight:500;' +
+          'line-height:20px;cursor:pointer;';
+      } else {
+        btn.classList.add('btn', 'btn-sm', 'btn-danger');
+      }
+      li.appendChild(btn);
+      actions.insertBefore(li, actions.firstChild);
+      return;
+    }
+
     btn.style.cssText =
       'background:#da3633;color:#fff;border:1px solid #f85149;border-radius:6px;' +
       'padding:5px 12px;font-size:14px;font-weight:600;cursor:pointer;' +
       'position:fixed;top:80px;right:20px;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.3);';
-    btn.addEventListener('click', () => handleWipeClick(info));
     document.body.appendChild(btn);
   }
 
