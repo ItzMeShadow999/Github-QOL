@@ -3,7 +3,7 @@
 // @namespace    https://github.com/
 // @version      1.3.0
 // @description  Add buttons to copy GitHub file link(s) as raw.githubusercontent.com URLs (single file, whole folder listing, all files in a PR diff, or a dropdown on the repo page to pick all / folders / files)
-// @author       you
+// @author       ItzMeShadow999
 // @match        https://github.com/*
 // @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @downloadURL  https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/github-copy-raw-links_user.js
