@@ -78,7 +78,7 @@ The combined script guards each module by hostname and path, so repo logic never
 1. Install a userscript manager for your browser:
    - [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Edge, Firefox, Safari, Opera)
    - [Violentmonkey](https://violentmonkey.github.io/) (Chrome, Edge, Firefox)
-   - [ScriptVault](https://chromewebstore.google.com/detail/scriptvault/jlhdbkeijcbgnonpfkfkkkhfmbeejkgh?hl=en) (Chrome, Edge, Firefox, Firefox for Android, Brave, Vivaldi, Opera, Arc, Safari, Orion) ![Recommended](https://img.shields.io/badge/Recommended-%E2%9C%94-brightgreen)
+   - [ScriptVault](https://chromewebstore.google.com/detail/scriptvault/jlhdbkeijcbgnonpfkfkkkhfmbeejkgh?hl=en) (Chrome, Edge, Firefox, Firefox for Android, Brave, Vivaldi, Opera, Arc, Safari, Orion)![Recommended](https://img.shields.io/badge/Recommended-%E2%9C%94-brightgreen)
 2. Open the script you want in this repository and click **Raw**. Your userscript manager will offer to install it.
 3. Confirm the install, then reload GitHub.
 
