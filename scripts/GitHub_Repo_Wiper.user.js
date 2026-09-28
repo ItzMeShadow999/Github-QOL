@@ -3,6 +3,7 @@
 // @namespace    https://github.com/ItzMeShadow999
 // @version      1.9
 // @description  Adds a "Wipe Repo" button that deletes all files in the current repo (repo itself is kept)
+// @author       ItzMeShadow999
 // @match        https://github.com/*/*
 // @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
 // @grant        GM_setValue
