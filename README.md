@@ -50,12 +50,15 @@ Every feature exists as a standalone script, and most are also bundled into thre
 | **GitHub Notification Favicon Badge** | `github.com` | Puts a red dot on the tab title and favicon when you have unread notifications |
 | **GitHub PR Auto-Expand Diffs** | Pull request pages | Automatically clicks "Load diff" and "Load more files" so big PRs render fully |
 | **GitHub Repo Wiper** | Repo pages | Adds a "Wipe Repo" button that deletes every file in a repo's default branch while keeping the repo itself *(standalone only for now see note below)* |
+| **GitHub Last Commit Wiper** | Repo pages | Adds a "Wipe Commits" button that removes a commit (the latest one, or any commit by SHA) from a branch's history *(standalone only see note below)* |
 | **GitHub Gist Control Panel** | `gist.github.com` | Same shortcuts for gists, plus one-click copy buttons on code blocks |
 | **Gist Discover: Actual Pagination** | `gist.github.com/discover` | Prev / Next / jump-to-page controls at the top and bottom of the page |
 | **Gist Discover Doomscroll** | `gist.github.com/discover` | Infinite scroll that keeps loading new pages of gists as you go |
 | **Gist Discover Spam Filter** | `gist.github.com/discover` | Hides obvious spam and junk gists, with a toggle to reveal them |
 
 > **GitHub Repo Wiper isn't in any master script yet.** It's brand new and standalone-only right now it'll be folded into the GitHub and combined master scripts soon.
+
+> **GitHub Last Commit Wiper is a standalone script too.** Like the Repo Wiper, it isn't in any master script, so install it on its own.
 
 ## Which One Should I Install?
 
@@ -66,9 +69,9 @@ Pick **one** of these routes. Do not mix a master script with the standalone scr
 | **The Master GitHub/Gist UserScript** (recommended) | All 6 bundled scripts | `github.com` and `gist.github.com` |
 | **Master GitHub UserScript** | Repo Control Panel, Notification Favicon Badge, PR Auto-Expand Diffs | `github.com` only |
 | **Master Gist UserScript** | Gist Control Panel, Pagination, Doomscroll, Spam Filter | `gist.github.com` only |
-| **Standalone scripts** | Whichever ones you choose, including GitHub Repo Wiper | See table above |
+| **Standalone scripts** | Whichever ones you choose, including GitHub Repo Wiper and GitHub Last Commit Wiper | See table above |
 
-The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`. GitHub Repo Wiper must be installed on its own until it's added to the master scripts.
+The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`. GitHub Repo Wiper must be installed on its own until it's added to the master scripts, and GitHub Last Commit Wiper is standalone as well.
 
 ## Installation
 
@@ -85,8 +88,9 @@ Direct install links:
 - [Master GitHub UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_GitHub_UserScript.user.js)
 - [Master Gist UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_Gist_UserScript.user.js)
 - [GitHub Repo Wiper](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Repo_Wiper.user.js) *(standalone only, not yet in a master script)*
+- [GitHub Last Commit Wiper](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Last_Commit_Wiper.user.js) *(standalone only, not in a master script)*
 
-The two scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time. GitHub Repo Wiper uses `GM_setValue`/`GM_getValue` to store your GitHub token locally and `GM_registerMenuCommand` to add a "Set GitHub Token" entry to its menu.
+The two scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time. GitHub Repo Wiper uses `GM_setValue`/`GM_getValue` to store your GitHub token locally and `GM_registerMenuCommand` to add a "Set GitHub Token" entry to its menu. GitHub Last Commit Wiper uses the same grants, plus `GM_openInTab` and `GM_addValueChangeListener` for its automatic token setup, and adds "Wipe Commits" and "Set GitHub Token (Last Commit Wiper)" entries to the menu.
 
 ## Features in Detail
 
@@ -120,6 +124,27 @@ Adds a red **"Wipe Repo"** button on any repo page. Clicking it prompts you to t
 Before first use, set a GitHub Personal Access Token (`repo` scope, or `Contents: write` for a fine-grained token) via the script's **Set GitHub Token** menu command in your userscript manager's popup.
 
 *Not yet bundled into any master script coming soon.*
+
+### GitHub Last Commit Wiper
+
+Adds a red **"Wipe Commits"** button to the repo header, plus a matching entry in your userscript manager's menu. Click it, then either paste a commit SHA (full or short) or leave the box blank to target the latest commit. The branch comes from the URL (for example `/tree/my-branch`) and falls back to the default branch. You then get a preview of the target commit, how many newer commits sit after it, and its parent, and you choose what to do:
+
+| Action | What happens |
+| --- | --- |
+| **Remove only this commit** | Drops that one commit and keeps every newer commit, replayed on top of the target's parent |
+| **Wipe it + N newer** | Resets the branch to the target's parent, so the target and everything after it are gone |
+| **Keep it, wipe N newer** | Resets the branch to the target itself, dropping only the commits after it |
+| **Revert instead** | Latest commit only. Adds a new commit that restores the parent's files, with no force push |
+
+The three force actions stay locked until you type the branch name to confirm.
+
+**Remove only this commit** works through the Git Data API. Each newer commit is recreated with its original message, author, and dates, but gets a new SHA, and any signature on it is dropped. Files are merged line by line (a three-way merge). If a newer commit overlaps the removed one, or a file was added, deleted, or renamed on one side, the script stops and names the file and commit. Nothing is written to the branch in that case. The newer commits must form a straight line (no merge commits), up to 100 of them.
+
+After any action the card shows the old head SHA with **Copy old SHA** and **Restore commit** buttons, so you can point the branch back where it was.
+
+Token setup works like the Repo Wiper. On first use it opens GitHub's token page in a new tab, clicks **Generate token**, copies the token, and hands it back to the card, with a paste-your-own fallback if that fails. The token needs the `repo` scope (or `Contents: write` for a fine-grained token). The script checks the token's scopes and refuses one that cannot write. It keeps its own token, named `Last Commit Wiper UserScript` in your GitHub token list, so it does not share one with the Repo Wiper.
+
+*Standalone only, not bundled into any master script.*
 
 ### Gist Control Panel
 
@@ -163,7 +188,7 @@ Scans every gist card on Discover against a set of patterns and hides the ones t
 | **Alt+R** | Open the current file (`/blob/`) as raw (`/raw/`) | Open the gist's raw view |
 | **Alt+C** | Copy `owner/repo` | Copy the gist ID |
 
-Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing. GitHub Repo Wiper has no keyboard shortcut it's button-only, on purpose.
+Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing. GitHub Repo Wiper and GitHub Last Commit Wiper have no keyboard shortcut they're button-only, on purpose.
 
 ## Spam Filter Rules
 
@@ -198,6 +223,14 @@ Add, remove, or edit entries in the `RULES` array. Each entry is `{ label, re }`
 
 Your token is stored under the `gh_wipe_token` key via `GM_setValue`. Re-run the **Set GitHub Token** menu command at any time to replace it.
 
+**GitHub Last Commit Wiper**
+
+Your token is stored under the `gh_lcw_token` key via `GM_setValue`. Re-run the **Set GitHub Token (Last Commit Wiper)** menu command at any time to replace it.
+
+| Constant | Default | Purpose |
+| --- | --- | --- |
+| `MAX_REWRITE` | `100` | Most newer commits that **Remove only this commit** will rewrite in one go |
+
 ## Known Quirks
 
 - **Do not double up.** Install a master script or the matching standalone scripts, not both.
@@ -205,6 +238,7 @@ Your token is stored under the `gh_wipe_token` key via `GM_setValue`. Re-run the
 - **Pagination bar and Doomscroll together.** Both can run at once, but the bar's page label reflects the page you originally loaded, not how far Doomscroll has scrolled. The **Prev**, **Next**, and jump controls reload the page.
 - **Alt+C on github.com** copies the first two path segments of any page, so outside a repository it will copy whatever those segments happen to be.
 - **GitHub Repo Wiper is destructive.** It force-pushes an empty tree to the default branch in one commit. Files stay recoverable from git history unless you separately rewrite or delete that history, and the operation will fail on branches with required-review protection until protection is relaxed.
+- **GitHub Last Commit Wiper rewrites branch history.** The force actions move the branch pointer, so anyone who already cloned or forked the repo still has the old commits, and GitHub may keep them viewable by direct SHA for a while. If a commit leaked a secret, rotate the secret. Protected branches and rulesets can block the force actions (**Revert instead** still works). A commit with no parent, such as the initial commit, cannot use **Wipe it**, but **Remove only** and **Keep it** still apply to it. Teammates will need to reset their local copies after a force update.
 - **GitHub changes its markup.** Selectors like `.gist-snippet` and `.AppHeader-button--hasIndicator` may need updating if GitHub redesigns those pages.
 
 ## Repository Layout
@@ -221,6 +255,7 @@ Your token is stored under the `gh_wipe_token` key via `GM_setValue`. Re-run the
     ├── GitHub_Notification_Favicon_Badge.user.js
     ├── GitHub_PR_Auto-Expand_Diffs.user.js
     ├── GitHub_Repo_Wiper.user.js
+    ├── GitHub_Last_Commit_Wiper.user.js
     ├── GitHub_Gist_Control_Panel.user.js
     ├── Gist_Discover___Actual_Pagination.user.js
     ├── Gist_Discover_Doomscroll.user.js
