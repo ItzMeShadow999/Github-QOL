@@ -24,7 +24,7 @@
 
 </div>
 
-A collection of userscripts that add keyboard shortcuts, copy buttons, notification badges, a much nicer Gist Discover experience, and repo management tools to **github.com** and **gist.github.com**.
+A collection of userscripts that add keyboard shortcuts, copy buttons, raw link copying, notification badges, a much nicer Gist Discover experience, and repo management tools to **github.com** and **gist.github.com**.
 
 Every feature exists as a standalone script, and most are also bundled into three "master" scripts so you can install one file and be done.
 
@@ -51,6 +51,7 @@ Every feature exists as a standalone script, and most are also bundled into thre
 | **GitHub PR Auto-Expand Diffs** | Pull request pages | Automatically clicks "Load diff" and "Load more files" so big PRs render fully |
 | **GitHub Repo Wiper** | Repo pages | Adds a "Wipe Repo" button that deletes every file in a repo's default branch while keeping the repo itself *(standalone only for now see note below)* |
 | **GitHub Last Commit Wiper** | Repo pages | Adds a "Wipe Commits" button that removes a commit (the latest one, or any commit by SHA) from a branch's history *(standalone only see note below)* |
+| **GitHub Copy Raw Links** | `github.com` | Adds "Copy raw link" buttons for single files, whole folders, and individual rows, plus a dropdown on the repo page to copy `raw.githubusercontent.com` links for all files, chosen folders, or chosen files *(standalone only, see note below)* |
 | **GitHub Gist Control Panel** | `gist.github.com` | Same shortcuts for gists, plus one-click copy buttons on code blocks |
 | **Gist Discover: Actual Pagination** | `gist.github.com/discover` | Prev / Next / jump-to-page controls at the top and bottom of the page |
 | **Gist Discover Doomscroll** | `gist.github.com/discover` | Infinite scroll that keeps loading new pages of gists as you go |
@@ -59,6 +60,8 @@ Every feature exists as a standalone script, and most are also bundled into thre
 > **GitHub Repo Wiper isn't in any master script yet.** It's brand new and standalone-only right now it'll be folded into the GitHub and combined master scripts soon.
 
 > **GitHub Last Commit Wiper is a standalone script too.** Like the Repo Wiper, it isn't in any master script, so install it on its own.
+
+> **GitHub Copy Raw Links is standalone as well.** It isn't in any master script either, so install it on its own.
 
 ## Which One Should I Install?
 
@@ -69,9 +72,9 @@ Pick **one** of these routes. Do not mix a master script with the standalone scr
 | **The Master GitHub/Gist UserScript** (recommended) | All 6 bundled scripts | `github.com` and `gist.github.com` |
 | **Master GitHub UserScript** | Repo Control Panel, Notification Favicon Badge, PR Auto-Expand Diffs | `github.com` only |
 | **Master Gist UserScript** | Gist Control Panel, Pagination, Doomscroll, Spam Filter | `gist.github.com` only |
-| **Standalone scripts** | Whichever ones you choose, including GitHub Repo Wiper and GitHub Last Commit Wiper | See table above |
+| **Standalone scripts** | Whichever ones you choose, including GitHub Repo Wiper, GitHub Last Commit Wiper, and GitHub Copy Raw Links | See table above |
 
-The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`. GitHub Repo Wiper must be installed on its own until it's added to the master scripts, and GitHub Last Commit Wiper is standalone as well.
+The combined script guards each module by hostname and path, so repo logic never runs on Gist and Discover logic only runs on `/discover`. GitHub Repo Wiper must be installed on its own until it's added to the master scripts, and GitHub Last Commit Wiper and GitHub Copy Raw Links are standalone as well.
 
 ## Installation
 
@@ -89,8 +92,9 @@ Direct install links:
 - [Master Gist UserScript](https://github.com/ItzMeShadow999/Github-QOL/raw/main/master/Master_Gist_UserScript.user.js)
 - [GitHub Repo Wiper](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Repo_Wiper.user.js) *(standalone only, not yet in a master script)*
 - [GitHub Last Commit Wiper](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/GitHub_Last_Commit_Wiper.user.js) *(standalone only, not in a master script)*
+- [GitHub Copy Raw Links](https://github.com/ItzMeShadow999/Github-QOL/raw/main/scripts/github-copy-raw-links_user.js) *(standalone only, not in a master script)*
 
-The two scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time. GitHub Repo Wiper uses `GM_setValue`/`GM_getValue` to store your GitHub token locally and `GM_registerMenuCommand` to add a "Set GitHub Token" entry to its menu. GitHub Last Commit Wiper uses the same grants, plus `GM_openInTab` and `GM_addValueChangeListener` for its automatic token setup, and adds "Wipe Commits" and "Set GitHub Token (Last Commit Wiper)" entries to the menu.
+The scripts that copy to your clipboard use the `GM_setClipboard` grant, so your userscript manager may ask for permission the first time. GitHub Repo Wiper uses `GM_setValue`/`GM_getValue` to store your GitHub token locally and `GM_registerMenuCommand` to add a "Set GitHub Token" entry to its menu. GitHub Last Commit Wiper uses the same grants, plus `GM_openInTab` and `GM_addValueChangeListener` for its automatic token setup, and adds "Wipe Commits" and "Set GitHub Token (Last Commit Wiper)" entries to the menu. GitHub Copy Raw Links uses `GM_setClipboard` to copy, `GM_addStyle` for its buttons, `GM_setValue`/`GM_getValue`/`GM_deleteValue` to store an optional GitHub token locally, and `GM_openInTab` plus `GM_addValueChangeListener` for its automatic token setup. It adds "Set GitHub token (Copy Raw Links)" and "Clear GitHub token (Copy Raw Links)" entries to the menu.
 
 ## Features in Detail
 
@@ -146,6 +150,26 @@ Token setup works like the Repo Wiper. On first use it opens GitHub's token page
 
 *Standalone only, not bundled into any master script.*
 
+### GitHub Copy Raw Links
+
+Copies `raw.githubusercontent.com` links instead of the usual `github.com/.../blob/...` ones. What you get depends on the page you're on:
+
+| Where | What you get |
+| --- | --- |
+| **A single file** (`/blob/`) | A **Copy raw link** button joined onto GitHub's own Raw button. It flashes green after you click it |
+| **A repo or folder page** | A **Copy all raw links (incl. subfolders)** button, plus a small **⧉ raw** link after every file name in the listing |
+| **A repo or folder page, next to Add file** | A **Copy raw links** dropdown with **All files**, **Specific folders...**, and **Specific files...** |
+
+When more than one link is copied, they go to your clipboard one per line. Inside a folder (`/tree/<branch>/<folder>`), everything is scoped to that folder. On the repo root it covers the whole repo. The branch comes from the URL and falls back to the default branch.
+
+The two picker options open a card with a filter box, **Select shown** and **Clear** buttons, and a live **Copy N links** count. In folder mode, each row shows how many files it holds, and ticking a folder copies every file inside it, subfolders included.
+
+File lists come from GitHub's Git Trees API in one recursive call, cached for 10 minutes per repo and branch. The buttons re-mount on Turbo navigation, so they survive GitHub's client-side page changes.
+
+It works without a token on public repos. A token is only asked for when you hit GitHub's API rate limit, or when GitHub says it can't fetch something (a private repo, or access denied), and the script always asks before setting one up. Setup works like the Wipers: it opens GitHub's token page in a new tab, clicks **Generate token**, copies the token, and hands it back to the card, with a paste-your-own fallback if that fails. The token is verified against GitHub before it is saved, and lifts the API limit to 5,000 requests an hour. The generated token is created with no scopes, so it can't read private repos. For those, paste your own token with the `repo` scope (or `Contents: read` for a fine-grained token). The script keeps its own token, named `Copy Raw Links UserScript` in your GitHub token list, so it does not share one with the Wipers. A token that GitHub rejects with a 401 is cleared automatically.
+
+*Standalone only, not bundled into any master script.*
+
 ### Gist Control Panel
 
 The Gist version of the control panel, with the same style of legend and a few gist-specific behaviors:
@@ -188,7 +212,7 @@ Scans every gist card on Discover against a set of patterns and hides the ones t
 | **Alt+R** | Open the current file (`/blob/`) as raw (`/raw/`) | Open the gist's raw view |
 | **Alt+C** | Copy `owner/repo` | Copy the gist ID |
 
-Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing. GitHub Repo Wiper and GitHub Last Commit Wiper have no keyboard shortcut they're button-only, on purpose.
+Alt+R is ignored on edit pages. All shortcuts use the capture phase and stay out of the way while you are typing. GitHub Repo Wiper and GitHub Last Commit Wiper have no keyboard shortcut they're button-only, on purpose. GitHub Copy Raw Links is button-only as well.
 
 ## Spam Filter Rules
 
@@ -231,6 +255,16 @@ Your token is stored under the `gh_lcw_token` key via `GM_setValue`. Re-run the 
 | --- | --- | --- |
 | `MAX_REWRITE` | `100` | Most newer commits that **Remove only this commit** will rewrite in one go |
 
+**GitHub Copy Raw Links**
+
+Your token is stored under the `grl_github_token` key via `GM_setValue`. Re-run the **Set GitHub token (Copy Raw Links)** menu command at any time to replace it, or **Clear GitHub token (Copy Raw Links)** to remove it.
+
+| Constant | Default | Purpose |
+| --- | --- | --- |
+| `CACHE_TTL_MS` | `10 * 60 * 1000` | How long a repo's file list is cached before it is fetched again |
+| `AUTO_TIMEOUT` | `2 * 60 * 1000` | How long automatic token setup waits before falling back to paste-your-own |
+| `AUTOGEN_TTL` | `5 * 60 * 1000` | How long an automatic setup attempt stays valid before it is discarded |
+
 ## Known Quirks
 
 - **Do not double up.** Install a master script or the matching standalone scripts, not both.
@@ -239,6 +273,7 @@ Your token is stored under the `gh_lcw_token` key via `GM_setValue`. Re-run the 
 - **Alt+C on github.com** copies the first two path segments of any page, so outside a repository it will copy whatever those segments happen to be.
 - **GitHub Repo Wiper is destructive.** It force-pushes an empty tree to the default branch in one commit. Files stay recoverable from git history unless you separately rewrite or delete that history, and the operation will fail on branches with required-review protection until protection is relaxed.
 - **GitHub Last Commit Wiper rewrites branch history.** The force actions move the branch pointer, so anyone who already cloned or forked the repo still has the old commits, and GitHub may keep them viewable by direct SHA for a while. If a commit leaked a secret, rotate the secret. Protected branches and rulesets can block the force actions (**Revert instead** still works). A commit with no parent, such as the initial commit, cannot use **Wipe it**, but **Remove only** and **Keep it** still apply to it. Teammates will need to reset their local copies after a force update.
+- **GitHub Copy Raw Links has a few limits.** It reads the branch as a single URL segment, so branch names containing a slash (like `feature/foo`) may not resolve. GitHub truncates the file list for very large repos, and when that happens some files will be missing and a warning is logged to the browser console. Raw links from a private repo only open for someone who is signed in with access. The **Copy all raw links** button only appears on pages that list at least one file.
 - **GitHub changes its markup.** Selectors like `.gist-snippet` and `.AppHeader-button--hasIndicator` may need updating if GitHub redesigns those pages.
 
 ## Repository Layout
@@ -256,6 +291,7 @@ Your token is stored under the `gh_lcw_token` key via `GM_setValue`. Re-run the 
     ├── GitHub_PR_Auto-Expand_Diffs.user.js
     ├── GitHub_Repo_Wiper.user.js
     ├── GitHub_Last_Commit_Wiper.user.js
+    ├── github-copy-raw-links_user.js
     ├── GitHub_Gist_Control_Panel.user.js
     ├── Gist_Discover___Actual_Pagination.user.js
     ├── Gist_Discover_Doomscroll.user.js
