@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         GitHub Last Commit Wiper
 // @namespace    https://github.com/ItzMeShadow999
-// @version      1.3.3
-// @description  Adds a "Wipe Commits" button. Enter a commit SHA (or leave blank for the latest) and remove only that commit while keeping the newer ones, wipe it and everything after it, or keep it and wipe only the newer commits. The latest commit can also be reverted.
+// @version      1.3.4
+// @description  Adds a "Wipe Commits" button. Enter a commit SHA (or leave blank for the latest) and remove only that commit from history while keeping its files and the newer commits, wipe it and everything after it, or keep it and wipe only the newer commits. The latest commit can also be reverted.
 // @author       ItzMeShadow999
 // @homepageURL  https://github.com/ItzMeShadow999/Github-QOL
 // @supportURL   https://github.com/ItzMeShadow999/Github-QOL/issues
@@ -653,143 +653,7 @@
     setTimeout(() => input.focus(), 0);
   }
 
-  const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
   const MAX_REWRITE = 100;
-
-  function sameEntry(a, b) {
-    if (!a || !b) return !a && !b;
-    return a.sha === b.sha && a.mode === b.mode;
-  }
-
-  function sameLines(a, b) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-  }
-
-  function lcsMap(x, y) {
-    const m = new Map();
-    let s = 0;
-    while (s < x.length && s < y.length && x[s] === y[s]) {
-      m.set(s, s);
-      s++;
-    }
-    let ex = x.length;
-    let ey = y.length;
-    const tail = [];
-    while (ex > s && ey > s && x[ex - 1] === y[ey - 1]) {
-      ex--;
-      ey--;
-      tail.push([ex, ey]);
-    }
-    const n = ex - s;
-    const k = ey - s;
-    if (n && k) {
-      if (n * k > 6e6) throw new Error('file too large to merge automatically');
-      const w = k + 1;
-      const dp = new Uint32Array((n + 1) * w);
-      for (let i = n - 1; i >= 0; i--) {
-        for (let j = k - 1; j >= 0; j--) {
-          dp[i * w + j] = x[s + i] === y[s + j]
-            ? dp[(i + 1) * w + j + 1] + 1
-            : Math.max(dp[(i + 1) * w + j], dp[i * w + j + 1]);
-        }
-      }
-      let i = 0;
-      let j = 0;
-      while (i < n && j < k) {
-        if (x[s + i] === y[s + j]) {
-          m.set(s + i, s + j);
-          i++;
-          j++;
-        } else if (dp[(i + 1) * w + j] >= dp[i * w + j + 1]) i++;
-        else j++;
-      }
-    }
-    tail.forEach(([i, j]) => m.set(i, j));
-    return m;
-  }
-
-  function merge3(base, a, b) {
-    const ma = lcsMap(base, a);
-    const mb = lcsMap(base, b);
-    const stable = [];
-    for (let i = 0; i < base.length; i++) if (ma.has(i) && mb.has(i)) stable.push(i);
-    stable.push(base.length);
-    const out = [];
-    let bi = 0;
-    let ai = 0;
-    let bj = 0;
-    for (const i of stable) {
-      const last = i === base.length;
-      const aEnd = last ? a.length : ma.get(i);
-      const bEnd = last ? b.length : mb.get(i);
-      const bc = base.slice(bi, i);
-      const ac = a.slice(ai, aEnd);
-      const cc = b.slice(bj, bEnd);
-      if (sameLines(ac, bc)) out.push(...cc);
-      else if (sameLines(cc, bc) || sameLines(ac, cc)) out.push(...ac);
-      else return null;
-      if (!last) out.push(base[i]);
-      bi = i + 1;
-      ai = aEnd + 1;
-      bj = bEnd + 1;
-    }
-    return out;
-  }
-
-  async function loadTree(base, sha) {
-    const map = new Map();
-    if (!sha || sha === EMPTY_TREE_SHA) return map;
-    const t = await ghFetch('GET', `${base}/git/trees/${sha}?recursive=1`);
-    if (t.truncated) throw new Error('The repository tree is too large to rewrite through the API.');
-    t.tree.forEach((n) => {
-      if (n.type !== 'tree') map.set(n.path, { mode: n.mode, type: n.type, sha: n.sha });
-    });
-    return map;
-  }
-
-  async function readBlob(base, sha) {
-    const b = await ghFetch('GET', `${base}/git/blobs/${sha}`);
-    return atob(b.content.replace(/\s/g, ''));
-  }
-
-  async function mergeFile(base, path, p, t, o, sha) {
-    const fail = (why) => {
-      throw new Error(`Conflict in ${path} at ${short(sha)}: ${why}. Nothing was changed.`);
-    };
-    if (!p || !t || !o) fail('the file was added, deleted or renamed on one side');
-    if (p.type !== 'blob' || t.type !== 'blob' || o.type !== 'blob') fail('not a regular file');
-    const [bs, ts, os] = await Promise.all([
-      readBlob(base, p.sha), readBlob(base, t.sha), readBlob(base, o.sha),
-    ]);
-    if ([bs, ts, os].some((x) => x.indexOf('\0') !== -1)) fail('binary file edited on both sides');
-    let merged = null;
-    try {
-      merged = merge3(bs.split('\n'), ts.split('\n'), os.split('\n'));
-    } catch (e) {
-      fail(e.message);
-    }
-    if (!merged) fail('overlapping edits');
-    const blob = await ghFetch('POST', `${base}/git/blobs`, {
-      content: btoa(merged.join('\n')),
-      encoding: 'base64',
-    });
-    return { mode: o.mode !== p.mode ? o.mode : t.mode, type: 'blob', sha: blob.sha };
-  }
-
-  async function makeTree(base, tipTree, entries, next) {
-    if (tipTree && tipTree !== EMPTY_TREE_SHA) {
-      try {
-        return (await ghFetch('POST', `${base}/git/trees`, { base_tree: tipTree, tree: entries })).sha;
-      } catch (e) {
-        if (e.status !== 404) throw e;
-      }
-    }
-    const full = [...next].map(([path, v]) => ({ path, mode: v.mode, type: v.type, sha: v.sha }));
-    if (!full.length) return EMPTY_TREE_SHA;
-    return (await ghFetch('POST', `${base}/git/trees`, { tree: full })).sha;
-  }
 
   async function rewriteWithout(s, progress) {
     const { base, head, target, parent } = s;
@@ -807,47 +671,18 @@
     }
 
     let tip = parent ? parent.sha : null;
-    let tipTree = parent ? parent.tree.sha : null;
-    let cur = await loadTree(base, tipTree);
-    let origPrev = await loadTree(base, target.tree.sha);
-
     for (let n = 0; n < chain.length; n++) {
       const c = chain[n];
       progress(`Rewriting ${n + 1}/${chain.length} (${short(c.sha)})...`);
       const full = await ghFetch('GET', `${base}/git/commits/${c.sha}`);
-      const origCur = await loadTree(base, full.tree.sha);
-      const paths = new Set([...origPrev.keys(), ...origCur.keys()]);
-      const entries = [];
-      const next = new Map(cur);
-
-      for (const path of paths) {
-        const p = origPrev.get(path);
-        const o = origCur.get(path);
-        const t = cur.get(path);
-        if (sameEntry(p, o) || sameEntry(t, o)) continue;
-        const result = sameEntry(t, p) ? o : await mergeFile(base, path, p, t, o, c.sha);
-        if (result) {
-          entries.push({ path, mode: result.mode, type: result.type, sha: result.sha });
-          next.set(path, result);
-        } else {
-          entries.push({ path, mode: t.mode, type: t.type, sha: null });
-          next.delete(path);
-        }
-      }
-
-      let treeSha = tipTree || EMPTY_TREE_SHA;
-      if (entries.length) treeSha = await makeTree(base, tipTree, entries, next);
       const created = await ghFetch('POST', `${base}/git/commits`, {
         message: full.message,
-        tree: treeSha,
+        tree: full.tree.sha,
         parents: tip ? [tip] : [],
         author: full.author,
         committer: full.committer,
       });
       tip = created.sha;
-      tipTree = treeSha;
-      cur = next;
-      origPrev = origCur;
     }
     return tip;
   }
@@ -878,8 +713,8 @@
     }
     if (ahead > 0) {
       card.appendChild(el('div', 'color:var(--fgColor-muted,#8d96a0);margin-bottom:8px;font-size:12px;',
-        `"Remove only" keeps the ${ahead} newer commit${ahead === 1 ? '' : 's'} but rewrites them with new SHAs ` +
-        'and drops any signatures. It stops with no changes if an edit overlaps.'));
+        `"Remove only" keeps every file as it is and the ${ahead} newer commit${ahead === 1 ? '' : 's'}, but rewrites them with new SHAs ` +
+        'and drops any signatures. The removed commit\'s changes are folded into the next commit.'));
     }
 
     card.appendChild(el('div', 'font-size:12px;margin-bottom:6px;',
