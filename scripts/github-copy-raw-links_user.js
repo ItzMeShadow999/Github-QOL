@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         GitHub Copy Raw Links
 // @namespace    https://github.com/
-// @version      1.2.2
-// @description  Add buttons to copy GitHub file link(s) as raw.githubusercontent.com URLs (single file, whole folder listing, or all files in a PR diff)
+// @version      1.3.0
+// @description  Add buttons to copy GitHub file link(s) as raw.githubusercontent.com URLs (single file, whole folder listing, all files in a PR diff, or a dropdown on the repo page to pick all / folders / files)
 // @author       you
 // @match        https://github.com/*
 // @icon         https://i.ibb.co/XxSnS9h9/64880b9b0fe5b53bbe3f7280d262b33f.jpg
@@ -38,7 +38,8 @@
       cursor: pointer;
     }
     .grl-btn:hover { background: var(--bgColor-muted, #eaeef2); }
-    .grl-btn.grl-copied { background: #2da44e !important; color: #fff !important; border-color: #2da44e !important; }
+    .grl-btn.grl-copied,
+    .grl-joined-btn.grl-copied { background: #2da44e !important; color: #fff !important; border-color: #2da44e !important; }
     .grl-row-btn {
       cursor: pointer;
       opacity: 0.6;
@@ -47,6 +48,31 @@
       user-select: none;
     }
     .grl-row-btn:hover { opacity: 1; text-decoration: underline; }
+    .grl-repo-dd { display: inline-flex; position: relative; margin-right: 8px; }
+    .grl-repo-dd-btn.grl-copied { background: #2da44e !important; color: #fff !important; border-color: #2da44e !important; }
+    .grl-menu {
+      position: absolute; top: calc(100% + 4px); left: 0; z-index: 100000; width: 270px; padding: 8px; border-radius: 12px;
+      background: var(--overlay-bgColor, var(--bgColor-default, #0d1117));
+      color: var(--fgColor-default, #e6edf3);
+      border: 1px solid var(--borderColor-default, #30363d);
+      box-shadow: 0 8px 32px rgba(1,4,9,.5);
+    }
+    .grl-menu { transform-origin: top left; animation: grl-glide .12s ease-out; }
+    .grl-menu[data-align="right"] { transform-origin: top right; }
+    @keyframes grl-glide {
+      from { opacity: 0; transform: translateY(-6px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) { .grl-menu { animation: none; } }
+    .grl-menu-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+    .grl-menu-item:hover { background: var(--control-transparent-bgColor-hover, rgba(177,186,196,.12)); }
+    .grl-menu-title { font-size: 14px; font-weight: 500; }
+    .grl-menu-desc { font-size: 12px; color: var(--fgColor-muted, #8d96a0); margin-top: 2px; }
+    .grl-menu-sep { height: 1px; margin: 6px 0; background: var(--borderColor-muted, #30363d); }
+    .grl-pick-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .grl-pick-row:hover { background: var(--control-transparent-bgColor-hover, rgba(177,186,196,.12)); }
+    .grl-pick-row span.grl-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, monospace; }
+    .grl-pick-row span.grl-cnt { color: var(--fgColor-muted, #8d96a0); font-size: 12px; }
   `;
   if (typeof GM_addStyle === 'function') GM_addStyle(STYLE);
   else {
@@ -513,6 +539,13 @@
       }
       throw new Error(`GitHub API rate limit hit. Resets at ${when}. Use the userscript menu → "Set GitHub token (Copy Raw Links)" to raise the limit to 5000/hr.`);
     }
+    if ((res.status === 401 || res.status === 404) && !getStoredToken() && !tokenPrompted) {
+      tokenPrompted = true;
+      if (confirm('GitHub could not fetch this (private repo, or access denied).\n\nSet up a token now and retry?')) {
+        const saved = await showTokenCard();
+        if (saved) return ghGet(url);
+      }
+    }
     return res;
   }
 
@@ -532,11 +565,12 @@
   }
 
   function flashCopied(btn, label) {
-    const original = btn.textContent;
-    btn.textContent = label || 'Copied!';
+    const target = btn.querySelector('[data-component="text"]') || btn;
+    const original = target.textContent;
+    target.textContent = label || 'Copied!';
     btn.classList.add('grl-copied');
     setTimeout(() => {
-      btn.textContent = original;
+      target.textContent = original;
       btn.classList.remove('grl-copied');
     }, 1200);
   }
@@ -596,7 +630,7 @@
     return data.default_branch;
   }
 
-  async function fetchAllRawLinksRecursive() {
+  async function loadTreeContext() {
     const { owner, repo, basePath } = getRepoRootContext();
     let { branch } = getRepoRootContext();
     if (!branch) branch = await resolveDefaultBranch(owner, repo);
@@ -618,14 +652,22 @@
       tree = data.tree;
       treeCache.set(key, { time: Date.now(), tree });
     }
+    return { owner, repo, branch, basePath, tree };
+  }
 
-    let files = tree.filter((entry) => entry.type === 'blob').map((entry) => entry.path);
-    if (basePath) {
-      files = files.filter((p) => p === basePath || p.startsWith(basePath + '/'));
-    }
-    return files.map(
-      (p) => `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${p}`
-    );
+  function ctxRawUrl(ctx, p) {
+    return `https://raw.githubusercontent.com/${ctx.owner}/${ctx.repo}/${ctx.branch}/${p}`;
+  }
+
+  function inScope(ctx, p) {
+    return !ctx.basePath || p === ctx.basePath || p.startsWith(ctx.basePath + '/');
+  }
+
+  async function fetchAllRawLinksRecursive() {
+    const ctx = await loadTreeContext();
+    return ctx.tree
+      .filter((e) => e.type === 'blob' && inScope(ctx, e.path))
+      .map((e) => ctxRawUrl(ctx, e.path));
   }
 
   function isSingleFileView() {
@@ -633,11 +675,49 @@
     return parts[2] === 'blob';
   }
 
+  function injectJoinedButton() {
+    const rawBtn = document.querySelector('[data-testid="raw-button"]');
+    const rawItem = rawBtn && rawBtn.parentElement;
+    if (!rawItem || !rawItem.parentElement) return null;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = rawBtn.className + ' grl-single-btn grl-joined-btn';
+    ['data-loading', 'data-no-visuals', 'data-size', 'data-variant'].forEach((a) => {
+      if (rawBtn.hasAttribute(a)) btn.setAttribute(a, rawBtn.getAttribute(a));
+    });
+    btn.setAttribute('data-component', 'Button');
+
+    const content = rawBtn.querySelector('[data-component="buttonContent"]');
+    if (content) {
+      const clone = content.cloneNode(true);
+      const label = clone.querySelector('[data-component="text"]');
+      if (label) label.textContent = 'Copy raw link';
+      else clone.textContent = 'Copy raw link';
+      btn.appendChild(clone);
+    } else {
+      btn.textContent = 'Copy raw link';
+    }
+
+    btn.addEventListener('click', () => {
+      const raw = toRawUrl(location.href);
+      if (!raw) return;
+      copyText(raw).then(() => flashCopied(btn));
+    });
+
+    const item = document.createElement('div');
+    item.className = rawItem.className;
+    item.appendChild(btn);
+    rawItem.after(item);
+    return btn;
+  }
+
   function injectSingleFileButton() {
     if (document.querySelector('.grl-single-btn')) return;
+    if (injectJoinedButton()) return;
+
     const toolbar =
       document.querySelector('#StickyHeader div[class*="Box-sc"] div:last-child') ||
-      document.querySelector('[data-testid="raw-button"]')?.parentElement ||
       document.querySelector('.react-blob-header-edit-and-raw-actions') ||
       document.querySelector('#repos-sticky-header') ||
       document.querySelector('.file-header .file-actions') ||
@@ -679,10 +759,6 @@
     btn.className = 'grl-btn grl-folder-btn';
     btn.textContent = 'Copy all raw links (incl. subfolders)';
     btn.addEventListener('click', async () => {
-      if (!getStoredToken() && !tokenPrompted) {
-        tokenPrompted = true;
-        await showTokenCard();
-      }
       const original = btn.textContent;
       btn.textContent = 'Fetching file list…';
       btn.disabled = true;
@@ -748,11 +824,290 @@
     });
   }
 
+  async function showPicker(mode, setBusy) {
+    let ctx;
+    setBusy('Loading…');
+    try {
+      ctx = await loadTreeContext();
+    } catch (err) {
+      console.error('[GitHub Copy Raw Links]', err);
+      alert(`Could not load file list:\n\n${err.message}`);
+      return;
+    } finally {
+      setBusy(null);
+    }
+
+    const base = ctx.basePath ? ctx.basePath + '/' : '';
+    const files = ctx.tree.filter((e) => e.type === 'blob' && inScope(ctx, e.path)).map((e) => e.path);
+    const folderCounts = new Map();
+    files.forEach((f) => {
+      let idx = f.lastIndexOf('/');
+      while (idx > 0) {
+        const dir = f.slice(0, idx);
+        if (dir.length > base.length - 1 && (dir + '/').startsWith(base)) {
+          folderCounts.set(dir, (folderCounts.get(dir) || 0) + 1);
+        }
+        idx = f.lastIndexOf('/', idx - 1);
+      }
+    });
+    const folders = ctx.tree
+      .filter((e) => e.type === 'tree' && e.path.startsWith(base) && e.path !== ctx.basePath)
+      .map((e) => e.path);
+    const items = mode === 'folders' ? folders : files;
+    const selected = new Set();
+
+    const { overlay, card } = createCardShell('grl-picker-overlay');
+    card.style.width = 'min(560px,94vw)';
+    card.appendChild(el('div', 'font-size:16px;font-weight:600;margin-bottom:4px;', mode === 'folders' ? 'Choose folders' : 'Choose files'));
+    card.appendChild(
+      el(
+        'div',
+        'font-size:12px;color:var(--fgColor-muted,#8d96a0);margin-bottom:10px;',
+        mode === 'folders'
+          ? 'Every file inside each ticked folder (including subfolders) is copied as a raw link.'
+          : 'Tick the files whose raw links you want.'
+      )
+    );
+
+    const filter = makeInput('Filter…');
+    card.appendChild(filter);
+
+    const list = el(
+      'div',
+      'margin:10px 0;max-height:min(45vh,360px);overflow:auto;border:1px solid var(--borderColor-muted,#30363d);border-radius:6px;padding:4px;'
+    );
+    card.appendChild(list);
+
+    const copyBtn = makeButton('Copy 0 links', 'primary');
+    const rows = [];
+
+    function selectedFiles() {
+      if (mode === 'files') return files.filter((f) => selected.has(f));
+      return files.filter((f) => {
+        let idx = f.lastIndexOf('/');
+        while (idx > 0) {
+          if (selected.has(f.slice(0, idx))) return true;
+          idx = f.lastIndexOf('/', idx - 1);
+        }
+        return false;
+      });
+    }
+
+    function refreshCount() {
+      const n = selectedFiles().length;
+      copyBtn.textContent = `Copy ${n} link${n === 1 ? '' : 's'}`;
+      copyBtn.disabled = n === 0;
+      copyBtn.style.opacity = n === 0 ? '.5' : '1';
+    }
+
+    if (items.length === 0) {
+      list.appendChild(el('div', 'padding:12px;color:var(--fgColor-muted,#8d96a0);', mode === 'folders' ? 'No folders here.' : 'No files here.'));
+    }
+
+    items.forEach((p) => {
+      const row = document.createElement('label');
+      row.className = 'grl-pick-row';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.addEventListener('change', () => {
+        if (cb.checked) selected.add(p);
+        else selected.delete(p);
+        refreshCount();
+      });
+      const path = document.createElement('span');
+      path.className = 'grl-path';
+      const rel = p.slice(base.length);
+      path.textContent = mode === 'folders' ? rel + '/' : rel;
+      path.title = rel;
+      row.append(cb, path);
+      if (mode === 'folders') {
+        const cnt = document.createElement('span');
+        cnt.className = 'grl-cnt';
+        const c = folderCounts.get(p) || 0;
+        cnt.textContent = `${c} file${c === 1 ? '' : 's'}`;
+        row.appendChild(cnt);
+      }
+      list.appendChild(row);
+      rows.push({ p, rel, row, cb });
+    });
+
+    filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      rows.forEach((r) => (r.row.style.display = !q || r.rel.toLowerCase().includes(q) ? '' : 'none'));
+    });
+
+    const footer = el('div', 'display:flex;align-items:center;gap:8px;');
+    const allBtn = makeButton('Select shown');
+    const noneBtn = makeButton('Clear');
+    const spacer = el('div', 'flex:1;');
+    const cancelBtn = makeButton('Cancel');
+    allBtn.addEventListener('click', () => {
+      rows.forEach((r) => {
+        if (r.row.style.display === 'none') return;
+        r.cb.checked = true;
+        selected.add(r.p);
+      });
+      refreshCount();
+    });
+    noneBtn.addEventListener('click', () => {
+      rows.forEach((r) => (r.cb.checked = false));
+      selected.clear();
+      refreshCount();
+    });
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+    }
+    cancelBtn.addEventListener('click', close);
+    copyBtn.addEventListener('click', async () => {
+      const raws = selectedFiles().map((f) => ctxRawUrl(ctx, f));
+      if (!raws.length) return;
+      await copyText(raws.join('\n'));
+      copyBtn.textContent = `Copied ${raws.length}!`;
+      setTimeout(close, 700);
+    });
+
+    footer.append(allBtn, noneBtn, spacer, cancelBtn, copyBtn);
+    card.appendChild(footer);
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) close();
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey, true);
+    refreshCount();
+    filter.focus();
+  }
+
+  function injectRepoDropdown() {
+    if (document.querySelector('.grl-repo-dd')) return;
+    const addBtn = document.querySelector('button[aria-label="Add file"]');
+    const addWrap = addBtn && addBtn.parentElement;
+    if (!addWrap || !addWrap.parentElement) return;
+
+    const btn = addBtn.cloneNode(true);
+    btn.removeAttribute('id');
+    btn.removeAttribute('aria-labelledby');
+    btn.setAttribute('aria-label', 'Copy raw links');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.add('grl-repo-dd-btn');
+
+    const textHost = btn.querySelector('[data-component="text"]') || btn;
+    const caret = addBtn.querySelector('.octicon-triangle-down');
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = 'Copy raw links';
+    const inner = el('span', 'display:inline-flex;align-items:center;gap:4px;');
+    inner.appendChild(labelSpan);
+    if (caret) inner.appendChild(caret.cloneNode(true));
+    textHost.textContent = '';
+    textHost.appendChild(inner);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'grl-repo-dd';
+    wrap.appendChild(btn);
+    addWrap.before(wrap);
+
+    let menu = null;
+    let busy = false;
+    const originalLabel = labelSpan.textContent;
+
+    function setBusy(text) {
+      busy = !!text;
+      btn.disabled = busy;
+      labelSpan.textContent = text || originalLabel;
+    }
+
+    function closeMenu() {
+      if (!menu) return;
+      menu.remove();
+      menu = null;
+      btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('mousedown', onDocDown, true);
+      document.removeEventListener('keydown', onMenuKey, true);
+    }
+    function onDocDown(e) {
+      if (menu && !menu.contains(e.target) && !btn.contains(e.target)) closeMenu();
+    }
+    function onMenuKey(e) {
+      if (e.key === 'Escape') closeMenu();
+    }
+
+    async function copyAll() {
+      setBusy('Fetching…');
+      try {
+        const raws = await fetchAllRawLinksRecursive();
+        if (!raws.length) {
+          labelSpan.textContent = 'No files found';
+          setTimeout(() => setBusy(null), 1500);
+          return;
+        }
+        await copyText(raws.join('\n'));
+        labelSpan.textContent = `Copied ${raws.length}!`;
+        btn.classList.add('grl-copied');
+        setTimeout(() => {
+          btn.classList.remove('grl-copied');
+          setBusy(null);
+        }, 1400);
+      } catch (err) {
+        console.error('[GitHub Copy Raw Links]', err);
+        alert(`Copy raw links failed:\n\n${err.message}`);
+        setBusy(null);
+      }
+    }
+
+    function addItem(parent, title, desc, onClick) {
+      const item = document.createElement('div');
+      item.className = 'grl-menu-item';
+      item.setAttribute('role', 'menuitem');
+      const t = document.createElement('div');
+      t.className = 'grl-menu-title';
+      t.textContent = title;
+      const d = document.createElement('div');
+      d.className = 'grl-menu-desc';
+      d.textContent = desc;
+      item.append(t, d);
+      item.addEventListener('click', () => {
+        closeMenu();
+        onClick();
+      });
+      parent.appendChild(item);
+    }
+
+    btn.addEventListener('click', () => {
+      if (busy) return;
+      if (menu) return closeMenu();
+      const { basePath } = getRepoRootContext();
+      menu = document.createElement('div');
+      menu.className = 'grl-menu';
+      menu.setAttribute('role', 'menu');
+      addItem(menu, 'All files', basePath ? `Everything in /${basePath}` : 'Every file in the repo', copyAll);
+      const sep = document.createElement('div');
+      sep.className = 'grl-menu-sep';
+      menu.appendChild(sep);
+      addItem(menu, 'Specific folders…', 'Tick folders, copy every file inside', () => showPicker('folders', setBusy));
+      addItem(menu, 'Specific files…', 'Tick individual files', () => showPicker('files', setBusy));
+
+      wrap.appendChild(menu);
+      if (menu.getBoundingClientRect().right > window.innerWidth - 8) {
+        menu.style.left = 'auto';
+        menu.style.right = '0';
+        menu.setAttribute('data-align', 'right');
+      }
+      btn.setAttribute('aria-expanded', 'true');
+      document.addEventListener('mousedown', onDocDown, true);
+      document.addEventListener('keydown', onMenuKey, true);
+    });
+  }
+
   function run() {
     if (isSingleFileView()) {
       injectSingleFileButton();
     } else {
       injectFolderButton();
+      injectRepoDropdown();
     }
   }
 
