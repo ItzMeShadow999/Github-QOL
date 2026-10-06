@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub Copy Raw Links
 // @namespace    https://github.com/
-// @version      1.3.0
+// @version      1.3.1
 // @description  Add buttons to copy GitHub file link(s) as raw.githubusercontent.com URLs (single file, whole folder listing, all files in a PR diff, or a dropdown on the repo page to pick all / folders / files)
 // @author       ItzMeShadow999
 // @match        https://github.com/*
@@ -744,53 +744,8 @@
     }
   }
 
-  function injectFolderButton() {
-    if (document.querySelector('.grl-folder-btn')) return;
+  function injectFolderRowButtons() {
     if (collectFolderRawLinks().length === 0) return;
-
-    const anchor =
-      document.querySelector('#folders-and-files + div') ||
-      document.querySelector('[data-testid="folder-row"]')?.closest('div[role="grid"]')?.previousElementSibling ||
-      document.querySelector('.file-navigation') ||
-      document.querySelector('h2[data-testid="latest-commit-details"]')?.parentElement;
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'grl-btn grl-folder-btn';
-    btn.textContent = 'Copy all raw links (incl. subfolders)';
-    btn.addEventListener('click', async () => {
-      const original = btn.textContent;
-      btn.textContent = 'Fetching file list…';
-      btn.disabled = true;
-      try {
-        const raws = await fetchAllRawLinksRecursive();
-        if (raws.length === 0) {
-          btn.textContent = 'No files found';
-          setTimeout(() => (btn.textContent = original), 1500);
-        } else {
-          await copyText(raws.join('\n'));
-          flashCopied(btn, `Copied ${raws.length}!`);
-        }
-      } catch (err) {
-        console.error('[GitHub Copy Raw Links]', err);
-        alert(`Copy raw links failed:\n\n${err.message}`);
-        btn.textContent = original;
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    if (anchor) {
-      anchor.style.display = anchor.style.display || 'flex';
-      anchor.appendChild(btn);
-    } else {
-      btn.style.position = 'fixed';
-      btn.style.bottom = '16px';
-      btn.style.right = '16px';
-      btn.style.zIndex = 9999;
-      document.body.appendChild(btn);
-    }
-
     injectPerRowButtons();
   }
 
@@ -1106,7 +1061,7 @@
     if (isSingleFileView()) {
       injectSingleFileButton();
     } else {
-      injectFolderButton();
+      injectFolderRowButtons();
       injectRepoDropdown();
     }
   }
