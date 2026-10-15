@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/ItzMeShadow999/Github-QOL/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ItzMeShadow999/Github-QOL?style=for-the-badge&labelColor=0d1117&color=1f6feb" alt="license"></a>
-  <a href="https://github.com/ItzMeShadow999/Github-QOL"><img src="https://img.shields.io/badge/repo%20size-105kb-1f6feb?style=for-the-badge&labelColor=0d1117" alt="repo size"></a>
+  <a href="https://github.com/ItzMeShadow999/Github-QOL"><img src="https://img.shields.io/badge/repo%20size-274 KB-1f6feb?style=for-the-badge&labelColor=0d1117" alt="repo size"></a>
 </p>
 
 <p align="center">
